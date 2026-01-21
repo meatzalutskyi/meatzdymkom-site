@@ -2285,25 +2285,29 @@
                     used_points: calc.bonus
                 };               // === НАДСИЛАЄМО ЗАМОВЛЕННЯ (Netlify Function) ===
 // === SEND ORDER to Netlify function (/api/order) ===
-const payload = {
-  ...orderData,   // <-- головне: розгортаємо поля наверх
-  msg,
-  isCutoff,
-  company: (document.getElementById('mz-company')?.value || '')
-};
+try {
+  const res = await fetch('/api/order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      orderData, // <-- ВАЖЛИВО: вкладений об'єкт
+      msg,
+      isCutoff,
+      company: (document.getElementById('mz-company')?.value || '')
+    })
+  });
 
-const res = await fetch('/api/order', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(payload)
-});
+  const text = await res.text();        // читаємо відповідь завжди
+  if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
 
-const text = await res.text();
-let data = null;
-try { data = JSON.parse(text); } catch (e) {}
+  // якщо треба — можна спробувати JSON, але не обов'язково
+  // const data = JSON.parse(text);
 
-if (!res.ok || (data && data.ok === false)) {
-  throw new Error((data && (data.error || data.details)) || text || `HTTP ${res.status}`);
+} catch (e) {
+  showToast("Error: " + (e?.message || e));
+  btn.innerText = "SUBMIT ORDER";
+  btn.disabled = false;
+  return;
 }
                 if (calc.bonus > 0) {
                     availableBonus -= calc.bonus; if (availableBonus < 0) availableBonus = 0;
