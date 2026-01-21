@@ -2283,17 +2283,27 @@
                     address: fullAddr,
                     payment: document.getElementById('wiz-payment').value,
                     used_points: calc.bonus
-                };                const res = await fetch('/api/order', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        orderData,
-                        msg,
-                        isCutoff,
-                        company: (document.getElementById('mz-company')?.value || '')
-                    })
-                });
-                if (!res.ok) throw new Error('Order failed');
+                };               // === НАДСИЛАЄМО ЗАМОВЛЕННЯ (Netlify Function) ===
+const payload = {
+  ...orderData, // <-- головне: розгортаємо поля наверх
+  msg,
+  isCutoff,
+  company: (document.getElementById('mz-company')?.value || '')
+};
+
+const res = await fetch('/.netlify/functions/order', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload)
+});
+
+let resp = null;
+try { resp = await res.json(); } catch (e) {}
+
+if (!res.ok || (resp && resp.ok === false)) {
+  const details = resp?.error || resp?.details || `HTTP ${res.status}`;
+  throw new Error(details);
+}
                 if (calc.bonus > 0) {
                     availableBonus -= calc.bonus; if (availableBonus < 0) availableBonus = 0;
                     document.getElementById('wiz-bonus-amount').innerText = '$' + availableBonus.toFixed(2);
