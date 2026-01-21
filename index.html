@@ -2284,25 +2284,26 @@
                     payment: document.getElementById('wiz-payment').value,
                     used_points: calc.bonus
                 };               // === НАДСИЛАЄМО ЗАМОВЛЕННЯ (Netlify Function) ===
+// === SEND ORDER to Netlify function (/api/order) ===
 const payload = {
-  ...orderData, // <-- головне: розгортаємо поля наверх
+  ...orderData,   // <-- головне: розгортаємо поля наверх
   msg,
   isCutoff,
   company: (document.getElementById('mz-company')?.value || '')
 };
 
-const res = await fetch('/.netlify/functions/order', {
+const res = await fetch('/api/order', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(payload)
 });
 
-let resp = null;
-try { resp = await res.json(); } catch (e) {}
+const text = await res.text();
+let data = null;
+try { data = JSON.parse(text); } catch (e) {}
 
-if (!res.ok || (resp && resp.ok === false)) {
-  const details = resp?.error || resp?.details || `HTTP ${res.status}`;
-  throw new Error(details);
+if (!res.ok || (data && data.ok === false)) {
+  throw new Error((data && (data.error || data.details)) || text || `HTTP ${res.status}`);
 }
                 if (calc.bonus > 0) {
                     availableBonus -= calc.bonus; if (availableBonus < 0) availableBonus = 0;
